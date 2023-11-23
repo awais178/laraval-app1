@@ -1,0 +1,48 @@
+# Use the official PHP with Apache image as the base image
+FROM php:8.1-apache
+
+# Set the working directory in the container
+WORKDIR /var/www/html
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    unzip \
+    git \
+    libonig-dev
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+RUN docker-php-ext-install gd pdo pdo_mysql zip mbstring
+RUN docker-php-ext-install exif
+
+# Copy Laravel application files to the container
+COPY . .
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Install application dependencies
+RUN composer update
+
+# Set necessary permissions
+RUN chown -R www-data:www-data /var/www/html
+RUN chmod -R 755 /var/www/html
+
+# Configure Apache
+RUN a2enmod rewrite
+
+# Copy your custom virtual host configuration into the container
+COPY cellphone.conf /etc/apache2/sites-available/cellphone.conf
+
+# Enable your custom virtual host
+RUN a2ensite cellphone.conf
+
+
+# Expose port 80
+EXPOSE 80
+
+
